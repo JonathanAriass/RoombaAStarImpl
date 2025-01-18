@@ -21,7 +21,7 @@ from M1_distance_tracker import track_distance, transform_screen_to_grid, update
 pygame.init()
 
 # Screen properties
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 800, 800
 FPS = 60
 
 # Colors (RGB)
@@ -114,6 +114,10 @@ while running:
     # Draw player
     pygame.draw.rect(screen, RED,
                      (player_x, player_y, player_width, player_height))
+    # Show coords of player on screen (center of the player)
+    font = pygame.font.Font(None, 16)
+    text = font.render(f"({player_x}, {player_y})", True, BLACK)
+    screen.blit(text, (player_x, player_y + 20))
 
     # Draw origin point
     pygame.draw.rect(screen, BLACK,
