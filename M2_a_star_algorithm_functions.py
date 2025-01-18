@@ -3,7 +3,6 @@ import numpy as np
 import heapq
 from math import sqrt
 
-
 def create_node(position: Tuple[int, int], g: float = float('inf'),
                 h: float = 0.0, parent: Dict = None) -> Dict:
     """
@@ -91,6 +90,93 @@ def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tu
 
     return [
         (nx, ny) for nx, ny in possible_moves
-        if 0 <= nx < rows and 0 <= ny < cols
-        and grid[nx, ny] == 0  # Not an obstacle
+        if is_valid(nx, ny)
     ]
+
+
+def reconstruct_path(goal_node: Dict) -> List[Tuple[int, int]]:
+    """
+        Reconstruct the path from the goal node to the start node.
+
+        Args:
+            goal_node: Goal node
+
+        Returns:
+            List of nodes from start to goal    
+    """
+    path = []
+    current = goal_node
+
+    while current is not None:
+        path.append(current['position'])
+        current = current['parent']
+    
+    return path[::-1] # Reverse path (start to goal)
+
+
+def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
+    """
+        Find the best path from start to goal using the A* algorithm.
+
+        Args:
+            grid: Grid with obstacles
+            start: (x, y) coordinates of the start node
+            goal: (x, y) coordinates of the goal node
+
+        Returns:
+            List of nodes from start to goal
+    """
+    # Initialize start node
+    start_node = create_node(position=start, g=0, h=calculate_euclidian_distance(start, goal))
+
+    # Initialize open and closed lists
+    open_list = [(start_node['f'], start)] # Priority queue
+    open_dict = {start: start_node} # For quick node lookup
+    closed_list = set() # Explored nodes
+
+    while open_list:
+        print("###########################")
+        print(open_list)
+        print("###########################")
+        print()
+        print()
+
+        # Get node with lowest f value
+        _, current_pos = heapq.heappop(open_list)
+        current_node = open_dict[current_pos]
+        
+        # Check if goal is reached
+        if current_pos == goal:
+            return reconstruct_path(current_node)
+        
+        # Add current node to closed list
+        closed_list.add(current_pos)
+
+        # Explore neighbours
+        for neighbour_pos in get_valid_neighbours(grid, current_pos):
+            # Skip if already explored
+            if neighbour_pos in closed_list:
+                continue
+
+            # Calculate g and h values
+            tentative_g = current_node['g'] + calculate_euclidian_distance(current_pos, neighbour_pos)
+
+            # Create or update neighbour node
+            if neighbour_pos not in open_list:
+                neighbour = create_node(position=neighbour_pos, g=tentative_g, h=calculate_euclidian_distance(neighbour_pos, goal), parent=current_node)
+
+                # Add neighbour to open list
+                heapq.heappush(open_list, (neighbour['f'], neighbour_pos))
+                
+                # Add neighbour to open dict
+                open_dict[neighbour_pos] = neighbour
+
+            elif tentative_g < open_dict[neighbour_pos]['g']:
+                # Found a better path to the neighbour
+                neighbour = open_dict[neighbour_pos]
+                neighbour['g'] = tentative_g
+                neighbour['f'] = tentative_g + neighbour['h']
+                neighbour['parent'] = current_node
+    
+    return [] # No path found
+

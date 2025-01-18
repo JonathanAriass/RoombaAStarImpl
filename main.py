@@ -1,6 +1,7 @@
 import pygame
 import random
-from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid
+from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid, find_best_path_to_origin_a_star
+from M2_a_star_algorithm_functions import find_path
 
 
 # TODO: Create a singleton class to store the game data and avoid global variables
@@ -28,6 +29,7 @@ FPS = 60
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 BLACK = (0, 0, 0)
+GREY = (128, 128, 128)
 
 # Screen setup
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -63,6 +65,10 @@ clock = pygame.time.Clock()
 
 # Initialize grid system
 grid = transform_screen_to_grid(player_x, player_y, origin_x, origin_y, obstacles)
+
+path = find_path(grid, (player_x, player_y), (origin_x, origin_y)) 
+
+print(path)
 
 running = True
 while running:
@@ -103,6 +109,12 @@ while running:
 
     # Screen drawing with white background
     screen.fill(WHITE)
+
+    # Show grid on screen
+    for i in range(0, WIDTH, 50):
+        pygame.draw.line(screen, GREY, (i, 0), (i, HEIGHT))
+    for i in range(0, HEIGHT, 50):
+        pygame.draw.line(screen, GREY, (0, i), (WIDTH, i))
 
     # Calculate the path to the origin point
     coords = track_distance(player_x + (player_width / 2 ), player_y + (player_height) / 2, origin_x + ( origin_width / 2), origin_y + (origin_height / 2), obstacles)
