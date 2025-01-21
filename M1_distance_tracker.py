@@ -1,21 +1,34 @@
 import numpy as np
 
-def track_distance(robot_x, robot_y, origin_x, origin_y, obstacles, screen_width=800, screen_heigth=800):
+GRID_SIZE = 40  # Define a smaller grid size (e.g., 40x40)
+SCREEN_WIDTH, SCREEN_HEIGHT = 800, 800  # Screen dimensions
+CELL_SIZE = SCREEN_WIDTH // GRID_SIZE  # Size of each cell in the grid
+
+
+def map_to_grid(x, y):
     """
-        Calculate and return an array of points representing the path of the robot to the origin point.
-        Check colission with obstacles and return the path of the robot to the origin point surrounded by obstacles.
+    Map screen coordinates to grid coordinates.
+    """
+    return x // CELL_SIZE, y // CELL_SIZE
+
+
+def map_to_screen(grid_x, grid_y):
+    """
+    Map grid coordinates back to screen coordinates.
+    """
+    return grid_x * CELL_SIZE, grid_y * CELL_SIZE
+
+
+def track_distance(robot_x, robot_y, origin_x, origin_y):
+    """
+    Calculate and return an array of points representing the path of the robot to the origin point.
+    Check collision with obstacles and return the path of the robot to the origin point surrounded by obstacles.
     """
     # Coords to track path
     coords = []
-
-    # Calculate the distance between the robot and the origin point
     dx = origin_x - robot_x
     dy = origin_y - robot_y
-
-    # Calculate the number of steps needed to reach the origin point
     steps = max(abs(dx), abs(dy))
-
-    # Calculate the step size for each axis
     step_x = dx / steps
     step_y = dy / steps
 
@@ -27,69 +40,47 @@ def track_distance(robot_x, robot_y, origin_x, origin_y, obstacles, screen_width
         x = robot_x + i * step_x
         y = robot_y + i * step_y
         coords.append((x, y))
-
-    # TODO: check colission with obstacles and apply some kind of algorithm to find best path possible
-
     return coords
 
 
-def transform_screen_to_grid(robot_x, robot_y, origin_x, origin_y, obstacles) -> np.ndarray:
+def transform_screen_to_grid(robot_x, robot_y, origin_x, origin_y, obstacles):
     """
-        Transform the screen into a grid of 800x800 where:
-            - Obstacles (1)
-            - Player (2)
-            - Origin point (3)
-            - Empty space (0)
+    Transform the screen into a grid of GRID_SIZE x GRID_SIZE.
     """
-    grid = np.zeros((800, 800))  
-
+    grid = np.zeros((GRID_SIZE, GRID_SIZE))
     # Add obstacles to grid
     for x, y in obstacles:
-        for i in range(x, x + 25):
-            for j in range(y, y + 25):
-                grid[i, j] = 1
-
+        grid_x, grid_y = map_to_grid(x, y)
+        grid[grid_x:grid_x + 1, grid_y:grid_y + 1] = 1  # Obstacle
     # Add origin point to grid
-    for i in range(int(origin_x) - 10, int(origin_x) + 10):
-        for j in range(int(origin_y) - 10, int(origin_y) + 10):
-            grid[i, j] = 3
-
+    origin_grid_x, origin_grid_y = map_to_grid(origin_x, origin_y)
+    grid[origin_grid_x, origin_grid_y] = 3  # Origin
     # Add player to grid
-    for i in range(int(robot_x) - 25, int(robot_x) + 25):
-        for j in range(int(robot_y) - 25, int(robot_y) + 25):
-            grid[i, j] = 2
-
+    player_grid_x, player_grid_y = map_to_grid(robot_x, robot_y)
+    grid[player_grid_x:player_grid_x + 1, player_grid_y:player_grid_y + 1] = 2  # Player
     return grid
 
 
 def update_robot_movement_grid(robot_x, robot_y, grid: np.ndarray, previous_robot_coords):
     """
-        Update the grid when robot moves. So 2's are introduced when robot moves
-        and 0 when robot leaves a space.
+    Update the grid when robot moves. Mark the robot's position in the grid.
     """
-    # Get previous robot coords
-    x_robot_prev, y_robot_prev = next(iter(previous_robot_coords))
-    
-    # Change 2's to 0's
-    for i in range(x_robot_prev, x_robot_prev + 50):
-        for j in range(y_robot_prev, y_robot_prev + 50):
-            grid[i, j] = 0
+    # Get previous robot grid position
+    prev_grid_x, prev_grid_y = map_to_grid(*next(iter(previous_robot_coords)))
+    grid[prev_grid_x, prev_grid_y] = 0  # Clear previous robot position
 
-    # Update robot position on grid
-    for i in range(int(robot_x), int(robot_x) + 50):
-        for j in range(int(robot_y) - 50, int(robot_y) + 50):
-            grid[i, j] = 2
+    # Get current robot grid position
+    new_grid_x, new_grid_y = map_to_grid(robot_x, robot_y)
+    grid[new_grid_x, new_grid_y] = 2  # Set new robot position
 
-    # Update previous robot coords
-    new_robot_coords = set()
-    new_robot_coords.add((robot_x, robot_y))
-
+    # Update robot coordinates
+    new_robot_coords = {(robot_x, robot_y)}
     return grid, new_robot_coords
 
 
-def find_best_path_to_origin_a_star(robot_x, robot_y, origin_x, origin_y, grid: np.ndarray,
-                                    robot_width=50, robot_height=50, origin_width=20, origin_height=20):
+def find_best_path_to_origin_a_star(robot_x, robot_y, origin_x, origin_y, grid: np.ndarray):
     """
-        Find the best path to the origin point using the A* algorithm.
+    Find the best path to the origin point using the A* algorithm.
     """
-    # TODO: implement A* algorithm
+    # TODO: Implement A* algorithm to find the path in the smaller grid.
+    pass

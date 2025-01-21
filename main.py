@@ -1,24 +1,9 @@
 import pygame
 import random
-from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid, find_best_path_to_origin_a_star
+from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid
 from M2_a_star_algorithm_functions import find_path
 
-
-# TODO: Create a singleton class to store the game data and avoid global variables
-# class GameDataSingleton:
-#     _instance = None
-
-#     def __new__(cls, *args, **kwargs):
-#         if not cls._instance:
-#             cls._instance = super(GameDataSingleton, cls).__new__(cls, *args, **kwargs)
-#             cls._instance.player_x = 0
-#             cls._instance.player_y = 0
-#             cls._instance.origin_x = 0
-#             cls._instance.origin_y = 0
-#             cls._instance.obstacles = []
-#             cls._instance.grid = []
-#         return cls._instance
-
+# Initialize Pygame
 pygame.init()
 
 # Screen properties
@@ -28,47 +13,62 @@ FPS = 60
 # Colors (RGB)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+CLEAR_GREEN = (127, 250, 127)
 BLACK = (0, 0, 0)
-GREY = (128, 128, 128)
+GREY = (200, 200, 200)
 
-# Screen setup
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Tracker Game")
+# Grid properties
+GRID_SIZE = 40
+CELL_SIZE = WIDTH // GRID_SIZE
 
 # Player properties
-player_width = 50
-player_height = 50
+# player_width, player_height = CELL_SIZE * 4, CELL_SIZE * 4
+player_width, player_height = CELL_SIZE, CELL_SIZE
 player_x = (WIDTH - player_width) // 2
 player_y = HEIGHT - player_height - 10
-player_speed = 5
+player_speed = 3
 player_coords = set()
-player_coords.add((player_x, player_y))  # Initial position
+player_coords.add((player_x, player_y))
 
 # Origin point to track
-origin_x = random.randint(0, WIDTH - player_width)
-origin_y = random.randint(0, HEIGHT - player_height)
-origin_width = 20
-origin_height = 20
+# origin_x = random.randint(0, GRID_SIZE - 1) * CELL_SIZE
+# origin_y = random.randint(0, GRID_SIZE - 1) * CELL_SIZE
+origin_x, origin_y = 600, 400
+origin_width, origin_height = CELL_SIZE, CELL_SIZE
+
+print(origin_x, origin_y)
 
 # Obstacles properties
 obstacles = []
-obstacle_width = 25
-obstacle_height = 25
-# Make random points
-for i in range(5):
-    x = random.randint(0, WIDTH - obstacle_width)
-    y = random.randint(0, HEIGHT - obstacle_height)
+obstacle_width, obstacle_height = CELL_SIZE, CELL_SIZE
+# Generate obstacles in front of the origin point
+
+for i in range(300):
+    x = 250 + i
+    y = 550
     obstacles.append((x, y))
 
-# Game loop
-clock = pygame.time.Clock()
+for i in range(300):
+    x = 375 + i
+    y = 600
+    obstacles.append((x, y))
+
 
 # Initialize grid system
 grid = transform_screen_to_grid(player_x, player_y, origin_x, origin_y, obstacles)
 
-path = find_path(grid, (player_x, player_y), (origin_x, origin_y)) 
+import sys
+import numpy
+numpy.set_printoptions(threshold=sys.maxsize)
 
-print(path)
+# print(grid)
+path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+
+# Game loop
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Tracker Game")
+clock = pygame.time.Clock()
 
 running = True
 while running:
@@ -76,11 +76,9 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Player movement and check colission with origin point 
     # Handle player movement
     keys = pygame.key.get_pressed()
-    new_player_x = player_x
-    new_player_y = player_y
+    new_player_x, new_player_y = player_x, player_y
     key_pressed = False
 
     if keys[pygame.K_LEFT] and player_x > 0:
@@ -97,55 +95,59 @@ while running:
         key_pressed = True
 
     if key_pressed:
-        # Update player position and check collision with origin point and obstacles
+        # Update player position and check collisions
         player_rect = pygame.Rect(new_player_x, new_player_y, player_width, player_height)
         origin_rect = pygame.Rect(origin_x, origin_y, origin_width, origin_height)
         obstacles_rect = [pygame.Rect(x, y, obstacle_width, obstacle_height) for x, y in obstacles]
+
         if not player_rect.colliderect(origin_rect) and not any(player_rect.colliderect(obstacle) for obstacle in obstacles_rect):
-            player_x = new_player_x
-            player_y = new_player_y
-            # Update robot position on grid
+            player_x, player_y = new_player_x, new_player_y
             grid, player_coords = update_robot_movement_grid(new_player_x, new_player_y, grid, player_coords)
 
-    # Screen drawing with white background
+    # Screen drawing
     screen.fill(WHITE)
 
-    # Show grid on screen
-    for i in range(0, WIDTH, 50):
-        pygame.draw.line(screen, GREY, (i, 0), (i, HEIGHT))
-    for i in range(0, HEIGHT, 50):
-        pygame.draw.line(screen, GREY, (0, i), (WIDTH, i))
+    # Draw grid
+    for x in range(0, WIDTH, CELL_SIZE):
+        pygame.draw.line(screen, GREY, (x, 0), (x, HEIGHT))
+    for y in range(0, HEIGHT, CELL_SIZE):
+        pygame.draw.line(screen, GREY, (0, y), (WIDTH, y))
 
-    # Calculate the path to the origin point
-    coords = track_distance(player_x + (player_width / 2 ), player_y + (player_height) / 2, origin_x + ( origin_width / 2), origin_y + (origin_height / 2), obstacles)
+    # Calculate path to the origin
+    coords = track_distance(player_x + (player_width / 2), player_y + (player_height / 2),
+                            origin_x + (origin_width / 2), origin_y + (origin_height / 2))
 
     # Draw path
     for x, y in coords:
         pygame.draw.rect(screen, BLACK, (x, y, 2, 2))
 
     # Draw player
-    pygame.draw.rect(screen, RED,
-                     (player_x, player_y, player_width, player_height))
-    # Show coords of player on screen (center of the player)
+    pygame.draw.rect(screen, RED, (player_x, player_y, player_width, player_height))
     font = pygame.font.Font(None, 16)
-    text = font.render(f"({player_x}, {player_y})", True, BLACK)
+    text = font.render(f"({player_x // CELL_SIZE}, {player_y // CELL_SIZE})", True, BLACK)
     screen.blit(text, (player_x, player_y + 20))
 
     # Draw origin point
-    pygame.draw.rect(screen, BLACK,
-                     (origin_x, origin_y, origin_width, origin_height))
+    pygame.draw.rect(screen, GREEN, (origin_x, origin_y, origin_width, origin_height))
 
     # Draw obstacles
     for x, y in obstacles:
         pygame.draw.rect(screen, BLACK, (x, y, obstacle_width, obstacle_height))
 
-    # Draw fps counter on screen
+    # Draw A* path
+    for x, y in path:
+        pygame.draw.rect(screen, CLEAR_GREEN, (x * CELL_SIZE + (player_width / 2), y * CELL_SIZE + (player_width / 2), CELL_SIZE, CELL_SIZE))
+
+    # Draw FPS counter
     font = pygame.font.Font(None, 36)
     fps = font.render(f"{int(clock.get_fps())} FPS", True, BLACK)
     screen.blit(fps, (10, 10))
 
-    pygame.display.update()
+    path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
+    pygame.display.update()
     clock.tick(FPS)
+
+    # path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
 pygame.quit()
