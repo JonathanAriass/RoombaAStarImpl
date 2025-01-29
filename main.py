@@ -46,7 +46,7 @@ obstacle_width, obstacle_height = CELL_SIZE, CELL_SIZE
 
 for i in range(300):
     x = 250 + i
-    y = 550
+    y = 500
     obstacles.append((x, y))
 
 for i in range(300):
@@ -63,7 +63,13 @@ import numpy
 numpy.set_printoptions(threshold=sys.maxsize)
 
 # print(grid)
-path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+# path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+print(path.__len__())
+
+
+print(path[-1])  # Print last path
+print(origin_x, origin_y)
 
 # Game loop
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -104,6 +110,15 @@ while running:
             player_x, player_y = new_player_x, new_player_y
             grid, player_coords = update_robot_movement_grid(new_player_x, new_player_y, grid, player_coords)
 
+        # Find path to origin only when player moves (measure time to find path)
+        start_time = pygame.time.get_ticks()
+        path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+        measure_time = pygame.time.get_ticks() - start_time
+
+        # Add this time into a log file
+        with open("log.txt", "a") as file:
+            file.write(f"{measure_time} ms\n")
+
     # Screen drawing
     screen.fill(WHITE)
 
@@ -134,16 +149,20 @@ while running:
     for x, y in obstacles:
         pygame.draw.rect(screen, BLACK, (x, y, obstacle_width, obstacle_height))
 
+    # Draw A* heat map path (numpy array)
+    for x in range(heat_map.shape[0]):
+        for y in range(heat_map.shape[1]):
+            if heat_map[x][y] != 0:
+                pygame.draw.rect(screen, (255, 0, 0, heat_map[x][y]), (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
     # Draw A* path
     for x, y in path:
-        pygame.draw.rect(screen, CLEAR_GREEN, (x * CELL_SIZE + (player_width / 2), y * CELL_SIZE + (player_width / 2), CELL_SIZE, CELL_SIZE))
+        pygame.draw.rect(screen, CLEAR_GREEN, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
     # Draw FPS counter
     font = pygame.font.Font(None, 36)
     fps = font.render(f"{int(clock.get_fps())} FPS", True, BLACK)
     screen.blit(fps, (10, 10))
-
-    path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
     pygame.display.update()
     clock.tick(FPS)

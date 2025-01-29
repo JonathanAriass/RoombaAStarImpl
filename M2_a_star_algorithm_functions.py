@@ -103,7 +103,7 @@ def reconstruct_path(goal_node: Dict) -> List[Tuple[int, int]]:
     return path[::-1]  # Reverse path (start to goal)
 
 
-def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -> List[Tuple[int, int]]:
+def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
     """
         Find the best path from start to goal using the A* algorithm.
 
@@ -115,39 +115,11 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -
         Returns:
             List of nodes from start to goal
     """
-
-    def visualize_path(grid, path, start, goal):
-        grid_copy = np.array(grid)
-        for pos in path:
-            grid_copy[pos[0]][pos[1]] = 2  # Mark the path
-
-        grid_copy[start[0]][start[1]] = 3  # Mark the start
-        grid_copy[goal[0]][goal[1]] = 4  # Mark the goal
-
-        grid_copy = np.transpose(grid_copy)  # Transpose the grid to correct orientation
-        plt.imshow(grid_copy, cmap='viridis')
-        plt.show()
-
-    def update_visualization(grid, current_pos, start, goal, visit_count):
-        grid_copy = np.array(grid)
-        visit_count[current_pos[0]][current_pos[1]] += 1  # Increment visit count
-
-        # Create heat map based on visit count
-        heat_map = np.log1p(visit_count)  # Use log scale for better visualization
-        heat_map = np.transpose(heat_map)  # Transpose the heat map to correct orientation
-        plt.imshow(heat_map, cmap='hot', interpolation='nearest')
-
-        grid_copy[start[0]][start[1]] = 3  # Mark the start
-        grid_copy[goal[0]][goal[1]] = 4  # Mark the goal
-
-        grid_copy = np.transpose(grid_copy)  # Transpose the grid to correct orientation
-        plt.imshow(grid_copy, cmap='viridis', alpha=0.6)  # Overlay grid on heat map
-        plt.pause(0.01)
-        plt.clf()
-
-
     # Initialize start node
     start_node = create_node(position=start, g=0, h=calculate_manhattan_distance(start, goal))
+
+    # Initialize heat map
+    heat_map = np.zeros_like(grid, dtype=float)
 
     # Initialize open and closed lists
     open_list = [(start_node['f'], start)]  # Priority queue
@@ -155,12 +127,7 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -
     closed_list = set()  # Explored nodes
 
     # Initialize visit count array
-    # visit_count = np.zeros_like(grid, dtype=int)
-
-    # breakpoint()
-
-    # print("Start node:", start)
-    # print("Goal node:", goal)
+    visit_count = np.zeros_like(grid, dtype=int)
 
     # plt.ion()  # Turn on interactive mode
     # plt.figure()
@@ -170,9 +137,12 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -
         _, current_pos = heapq.heappop(open_list)
         current_node = open_dict[current_pos]
 
-        # print(f"Exploring: {current_pos}")
+        # Update visit count and heat map
+        visit_count[current_pos[0]][current_pos[1]] += 1
+        heat_map[current_pos[0]][current_pos[1]] = np.log1p(visit_count[current_pos[0]][current_pos[1]])
 
-        # update_visualization(grid, current_pos, start, goal, visit_count)
+        # Render heat map
+        heat_map = np.transpose(heat_map)  # Transpose the heat map to correct orientation
 
         # Check if goal is reached
         if current_pos == goal:
@@ -181,7 +151,7 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -
             # visualize_path(grid, path, start, goal)
             # plt.ioff()  # Turn off interactive mode
             # plt.show()
-            return path
+            return path, heat_map
 
         # Add current node to closed list
         closed_list.add(current_pos)
@@ -219,4 +189,4 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -
         # print()
         # print("\n\n\n\n")
 
-    return []  # No path found
+    return [], []  # No path found
