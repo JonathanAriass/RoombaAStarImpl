@@ -21,8 +21,18 @@ def map_to_screen(grid_x, grid_y):
 
 def track_distance(robot_x, robot_y, origin_x, origin_y):
     """
-    Calculate and return an array of points representing the path of the robot to the origin point.
-    Check collision with obstacles and return the path of the robot to the origin point surrounded by obstacles.
+        Calculate and return an array of points representing the path of the
+        robot to the origin point. Check collision with obstacles and return
+        the path of the robot to the origin point surrounded by obstacles.
+
+        Args:
+            robot_x: x-coordinate of the robot
+            robot_y: y-coordinate of the robot
+            origin_x: x-coordinate of the origin point
+            origin_y: y-coordinate of the origin point
+
+        Returns:
+            Array of points representing the path of the robot to the origin point.
     """
     # Coords to track path
     coords = []
@@ -45,19 +55,34 @@ def track_distance(robot_x, robot_y, origin_x, origin_y):
 
 def transform_screen_to_grid(robot_x, robot_y, origin_x, origin_y, obstacles):
     """
-    Transform the screen into a grid of GRID_SIZE x GRID_SIZE.
+        Transform the screen into a grid of GRID_SIZE x GRID_SIZE.
+
+        Args:
+            robot_x: x-coordinate of the robot
+            robot_y: y-coordinate of the robot
+            origin_x: x-coordinate of the origin point
+            origin_y: y-coordinate of the origin point
+            obstacles: List of obstacles
+
+        Returns:
+            Grid with obstacles, origin point, and player marked
     """
+    # Initialize grid with zeros
     grid = np.zeros((GRID_SIZE, GRID_SIZE))
+
     # Add obstacles to grid
     for x, y in obstacles:
         grid_x, grid_y = map_to_grid(x, y)
-        grid[grid_x:grid_x + 1, grid_y:grid_y + 1] = 1  # Obstacle
+        grid[grid_x:grid_x + 1, grid_y:grid_y + 1] = 1
+
     # Add origin point to grid
     origin_grid_x, origin_grid_y = map_to_grid(origin_x, origin_y)
-    grid[origin_grid_x, origin_grid_y] = 3  # Origin
+    grid[origin_grid_x, origin_grid_y] = 3
+
     # Add player to grid
     player_grid_x, player_grid_y = map_to_grid(robot_x, robot_y)
-    grid[player_grid_x:player_grid_x + 1, player_grid_y:player_grid_y + 1] = 2  # Player
+    grid[player_grid_x:player_grid_x + 1, player_grid_y:player_grid_y + 1] = 2
+
     return grid
 
 
@@ -78,9 +103,11 @@ def update_robot_movement_grid(robot_x, robot_y, grid: np.ndarray, previous_robo
     return grid, new_robot_coords
 
 
-def find_best_path_to_origin_a_star(robot_x, robot_y, origin_x, origin_y, grid: np.ndarray):
+def update_grid_with_added_obstacles(grid: np.ndarray, obstacles):
     """
-    Find the best path to the origin point using the A* algorithm.
+    Update the grid with added obstacles.
     """
-    # TODO: Implement A* algorithm to find the path in the smaller grid.
-    pass
+    for x, y in obstacles:
+        grid_x, grid_y = map_to_grid(x, y)
+        grid[grid_x, grid_y] = 1  # Set obstacle position
+    return grid

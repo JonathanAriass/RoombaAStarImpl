@@ -1,7 +1,8 @@
 import pygame
 import random
-from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid
+from M1_distance_tracker import track_distance, transform_screen_to_grid, update_robot_movement_grid, update_grid_with_added_obstacles
 from M2_a_star_algorithm_functions import find_path
+import numpy as np
 
 # Initialize Pygame
 pygame.init()
@@ -62,25 +63,54 @@ import sys
 import numpy
 numpy.set_printoptions(threshold=sys.maxsize)
 
-# print(grid)
-# path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+# Find path to origin point and heat map
 path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
-print(path.__len__())
-
-
-print(path[-1])  # Print last path
-print(origin_x, origin_y)
 
 # Game loop
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Tracker Game")
 clock = pygame.time.Clock()
 
+# Create a surface for the heat map
+heat_map_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+alpha_value = 128  # Adjust this value as needed for desired transparency
+heat_map_surface.set_alpha(alpha_value)
+
+
+def normalize_heat_map(heat_map):
+    """
+        Normalize the heat map values to a range between 0 and 255.
+
+        Args:
+            heat_map: Heat map to normalize
+
+        Returns:
+            Normalized heat map
+    """
+    if np.max(heat_map) == 0:
+        return heat_map
+    return (heat_map / np.max(heat_map)) * 255
+
+
+# Create a surface for the adding obstacles by clicking and hovering over the grid
+obstacles_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+obstacles_surface.set_alpha(alpha_value)
+temporal_added_obstacles = []
+is_adding_obstacle = False
+
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            is_adding_obstacle = True
+        if event.type == pygame.MOUSEBUTTONUP:
+            is_adding_obstacle = False
+            obstacles_surface.fill((0, 0, 0, 0))  # Clear the obstacles surface
+            obstacles.extend(temporal_added_obstacles)
+            grid = update_grid_with_added_obstacles(grid, obstacles)
+            path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
     # Handle player movement
     keys = pygame.key.get_pressed()
@@ -136,6 +166,28 @@ while running:
     for x, y in coords:
         pygame.draw.rect(screen, BLACK, (x, y, 2, 2))
 
+    # Draw obstacles
+    for x, y in obstacles:
+        pygame.draw.rect(screen, BLACK, (x, y, obstacle_width, obstacle_height))
+
+    # Normalize the heat map
+    normalized_heat_map = normalize_heat_map(heat_map)
+
+    # Draw A* heat map path (numpy array)
+    heat_map_surface.fill((0, 0, 0, 0))  # Clear the heat map surface
+    for x in range(heat_map.shape[0]):
+        for y in range(heat_map.shape[1]):
+            if normalized_heat_map[x][y] != 0:
+                alpha = int(normalized_heat_map[x][y])
+                pygame.draw.rect(heat_map_surface, (255, 0, 0, alpha), (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    # Draw A* path
+    for x, y in path:
+        pygame.draw.rect(screen, CLEAR_GREEN, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+    # Blit the surface with the heat map onto the screen
+    screen.blit(heat_map_surface, (0, 0))
+
     # Draw player
     pygame.draw.rect(screen, RED, (player_x, player_y, player_width, player_height))
     font = pygame.font.Font(None, 16)
@@ -144,20 +196,18 @@ while running:
 
     # Draw origin point
     pygame.draw.rect(screen, GREEN, (origin_x, origin_y, origin_width, origin_height))
+    font = pygame.font.Font(None, 16)
+    text = font.render(f"Origin({origin_x // CELL_SIZE}, {origin_y // CELL_SIZE})", True, BLACK)
+    screen.blit(text, (origin_x, origin_y - 20))
 
-    # Draw obstacles
-    for x, y in obstacles:
-        pygame.draw.rect(screen, BLACK, (x, y, obstacle_width, obstacle_height))
-
-    # Draw A* heat map path (numpy array)
-    for x in range(heat_map.shape[0]):
-        for y in range(heat_map.shape[1]):
-            if heat_map[x][y] != 0:
-                pygame.draw.rect(screen, (255, 0, 0, heat_map[x][y]), (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
-
-    # Draw A* path
-    for x, y in path:
-        pygame.draw.rect(screen, CLEAR_GREEN, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+    # Draw obstacles surface (for adding obstacles)
+    if is_adding_obstacle:
+        mouse_x, mouse_y = pygame.mouse.get_pos()
+        grid_x = mouse_x // CELL_SIZE * CELL_SIZE
+        grid_y = mouse_y // CELL_SIZE * CELL_SIZE
+        pygame.draw.rect(obstacles_surface, BLACK, (grid_x, grid_y, CELL_SIZE, CELL_SIZE))
+        screen.blit(obstacles_surface, (0, 0))
+        temporal_added_obstacles.append((grid_x, grid_y))
 
     # Draw FPS counter
     font = pygame.font.Font(None, 36)
@@ -166,7 +216,5 @@ while running:
 
     pygame.display.update()
     clock.tick(FPS)
-
-    # path = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
 pygame.quit()

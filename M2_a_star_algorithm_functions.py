@@ -20,12 +20,18 @@ def create_node(position: Tuple[int, int], g: float = float('inf'),
         Returns:
             Dictionary containing node information
     """
-    scaled_h = h * 1.2
+    # scaled_h = h * 1.5
+    weigth = 1.1
+    # Use Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
+    # Conditions for Avoiding Reopenings in Best First Suboptimal Search
+    # with General Bounding Functions to scale the heuristic
+    scaled_f = g + h if g < h else (g + (2 * weigth - 1) * h) / weigth
+
     return {
         'position': position,
         'g': g,
         'h': h,
-        'f': g + scaled_h,
+        'f': scaled_f,
         'parent': parent
     }
 
@@ -47,6 +53,25 @@ def calculate_manhattan_distance(current_position: Tuple[int, int], goal_positio
     return abs(current_x - goal_x) + abs(current_y - goal_y)
 
 
+def calculate_diagonal_distance(current_position: Tuple[int, int], goal_position: Tuple[int, int]) -> float:
+    """
+        Calculate the diagonal distance between two points. As D and D2 are
+        equal to 1, it gets the name of Chebyshev distance. It is also known
+        as chessboard distance.
+
+        Args:
+            current_position: (x, y) coordinates of the current point
+            goal_position: (x, y) coordinates of the goal point
+
+        Returns:
+            Diagonal distance between the two points
+    """
+    current_x, current_y = current_position
+    goal_x, goal_y = goal_position
+
+    return max(abs(current_x - goal_x), abs(current_y - goal_y))
+
+
 def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tuple[int, int]]:
     """
         Get valid neighbours of a given node and surrounding nodes.
@@ -60,21 +85,18 @@ def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tu
     """
     x, y = position
     rows, cols = grid.shape
-    robot_width, robot_height = 50, 50
 
-    # TODO: Take into account that position of robot is 50x50 on grid
-
+    # All possible moves (up, down, left, right and diagonals)
     possible_moves = [
-        (x + 1, y),     # Right
-        (x - 1, y),               # Left
-        (x, y + 1),    # Down
-        (x, y - 1)               # Up
+        (x + 1, y),  # Right
+        (x - 1, y),  # Left
+        (x, y + 1),  # Down
+        (x, y - 1),  # Up
+        (x + 1, y + 1),  # Diagonal right-down
+        (x + 1, y - 1),  # Diagonal right-up
+        (x - 1, y + 1),  # Diagonal left-down
+        (x - 1, y - 1)  # Diagonal left-up
     ]
-
-    # return [
-    #     (nx, ny) for nx, ny in possible_moves
-    #     if is_valid(nx, ny)
-    # ]
 
     return [
         (nx, ny) for nx, ny in possible_moves
@@ -116,7 +138,7 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
             List of nodes from start to goal
     """
     # Initialize start node
-    start_node = create_node(position=start, g=0, h=calculate_manhattan_distance(start, goal))
+    start_node = create_node(position=start, g=0, h=calculate_diagonal_distance(start, goal))
 
     # Initialize heat map
     heat_map = np.zeros_like(grid, dtype=float)
@@ -129,9 +151,6 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
     # Initialize visit count array
     visit_count = np.zeros_like(grid, dtype=int)
 
-    # plt.ion()  # Turn on interactive mode
-    # plt.figure()
-
     while open_list:
         # Get node with lowest f value
         _, current_pos = heapq.heappop(open_list)
@@ -141,16 +160,9 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
         visit_count[current_pos[0]][current_pos[1]] += 1
         heat_map[current_pos[0]][current_pos[1]] = np.log1p(visit_count[current_pos[0]][current_pos[1]])
 
-        # Render heat map
-        heat_map = np.transpose(heat_map)  # Transpose the heat map to correct orientation
-
         # Check if goal is reached
         if current_pos == goal:
-            # print("Goal reached!")
             path = reconstruct_path(current_node)
-            # visualize_path(grid, path, start, goal)
-            # plt.ioff()  # Turn off interactive mode
-            # plt.show()
             return path, heat_map
 
         # Add current node to closed list
@@ -158,19 +170,17 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
 
         # Explore neighbours
         for neighbour_pos in get_valid_neighbours(grid, current_pos):
-            # print("Neighbour:", neighbour_pos)
 
             # Skip if already explored
             if neighbour_pos in closed_list:
-                # print("Already explored", neighbour_pos)
                 continue
 
             # Calculate g and h values
-            tentative_g = current_node['g'] + calculate_manhattan_distance(current_pos, neighbour_pos)
+            tentative_g = current_node['g'] + calculate_diagonal_distance(current_pos, neighbour_pos)
 
             # Create or update neighbour node
             if neighbour_pos not in open_list:
-                neighbour = create_node(position=neighbour_pos, g=tentative_g, h=calculate_manhattan_distance(neighbour_pos, goal), parent=current_node)
+                neighbour = create_node(position=neighbour_pos, g=tentative_g, h=calculate_diagonal_distance(neighbour_pos, goal), parent=current_node)
 
                 # Add neighbour to open list
                 heapq.heappush(open_list, (neighbour['f'], neighbour_pos))
@@ -182,11 +192,11 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
                 # Found a better path to the neighbour
                 neighbour = open_dict[neighbour_pos]
                 neighbour['g'] = tentative_g
-                neighbour['f'] = tentative_g + neighbour['h']
+                # Apply Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
+                # Conditions for Avoiding Reopenings in Best First Suboptimal Search
+                # with General Bounding Functions to scale the heuristic
+                neighbour['f'] = tentative_g + neighbour['h'] if tentative_g < neighbour['h'] else (tentative_g + (2 * 1.1 - 1) * neighbour['h']) / 1.1
+                # neighbour['f'] = tentative_g + neighbour['h']
                 neighbour['parent'] = current_node
-
-        # print()
-        # print()
-        # print("\n\n\n\n")
 
     return [], []  # No path found
