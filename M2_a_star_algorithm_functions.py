@@ -1,229 +1,302 @@
-from typing import List, Tuple, Dict, Set
+# import numpy as np
+# import heapq
+# import matplotlib.pyplot as plt
+# from typing import List, Tuple, Dict
+
+# # Tamaño del mapa y cluster
+# MAP_SIZE = (20, 20)
+# CLUSTER_SIZE = 5
+
+# # Crear un mapa de prueba con obstáculos
+# def generate_map(size: Tuple[int, int]) -> np.ndarray:
+#     grid = np.zeros(size, dtype=int)
+#     grid[5:15, 10] = 1  # Obstáculo vertical
+#     return grid
+
+# # Dividir el mapa en clusters
+# def get_clusters(grid: np.ndarray, cluster_size: int) -> List[List[Tuple[int, int]]]:
+#     clusters = []
+#     rows, cols = grid.shape
+#     for i in range(0, rows, cluster_size):
+#         for j in range(0, cols, cluster_size):
+#             cluster = [(x, y) for x in range(i, min(i+cluster_size, rows))
+#                                 for y in range(j, min(j+cluster_size, cols))]
+#             clusters.append(cluster)
+#     return clusters
+
+# # Identificar portales entre clusters
+# def get_portals(clusters: List[List[Tuple[int, int]]], grid: np.ndarray) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
+#     portals = {}
+#     for cluster in clusters:
+#         for x, y in cluster:
+#             if grid[x, y] == 0:  # No es obstáculo
+#                 neighbors = [(x+dx, y+dy) for dx, dy in [(0,1), (1,0), (0,-1), (-1,0)]
+#                              if (x+dx, y+dy) in cluster and grid[x+dx, y+dy] == 0]
+#                 if len(neighbors) < 4:  # Borde del cluster
+#                     portals[(x, y)] = neighbors
+#     return portals
+
+# def connect_clusters_via_portals(portals: Dict[Tuple[int, int], List[Tuple[int, int]]], cluster_size: int) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
+#     connections = {}
+#     for portal in portals:
+#         x, y = portal
+#         cluster_x, cluster_y = x // cluster_size, y // cluster_size
+#         for dx, dy in [(0,1), (1,0), (0,-1), (-1,0)]:
+#             neighbor_x, neighbor_y = x + dx, y + dy
+#             neighbor_cluster_x, neighbor_cluster_y = neighbor_x // cluster_size, neighbor_y // cluster_size
+#             if (neighbor_cluster_x, neighbor_cluster_y) != (cluster_x, cluster_y):
+#                 if (neighbor_x, neighbor_y) in portals:
+#                     if portal not in connections:
+#                         connections[portal] = []
+#                     connections[portal].append((neighbor_x, neighbor_y))
+#     return connections
+
+# # Algoritmo HPA*
+# def hpa_star(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int], portals: Dict[Tuple[int, int], List[Tuple[int, int]]]) -> List[Tuple[int, int]]:
+#     open_list = [(0, start)]
+#     came_from = {}
+#     g_score = {start: 0}
+
+#     while open_list:
+#         _, current = heapq.heappop(open_list)
+
+#         if current == goal:
+#             path = []
+#             while current in came_from:
+#                 path.append(current)
+#                 current = came_from[current]
+#             path.append(start)
+#             return path[::-1]
+
+#         for neighbor in portals.get(current, []):
+#             tentative_g = g_score[current] + 1
+#             if neighbor not in g_score or tentative_g < g_score[neighbor]:
+#                 g_score[neighbor] = tentative_g
+#                 heapq.heappush(open_list, (tentative_g, neighbor))
+#                 came_from[neighbor] = current
+
+#     return []  # No se encontró camino
+
+# def refine_path(grid: np.ndarray, path: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+#     refined_path = []
+#     for i in range(len(path) - 1):
+#         start = path[i]
+#         goal = path[i + 1]
+#         segment, _ = find_path(grid, start, goal)
+#         if segment:
+#             refined_path.extend(segment[:-1])  # Exclude the last node to avoid duplication
+#     refined_path.append(path[-1])  # Add the final goal node
+#     return refined_path
+
+# def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]) -> Tuple[List[Tuple[int, int]], Dict[Tuple[int, int], float]]:
+#     open_list = [(0, start)]
+#     came_from = {}
+#     g_score = {start: 0}
+#     f_score = {start: calculate_heuristic(start, goal)}
+
+#     while open_list:
+#         _, current = heapq.heappop(open_list)
+
+#         if current == goal:
+#             path = []
+#             while current in came_from:
+#                 path.append(current)
+#                 current = came_from[current]
+#             path.append(start)
+#             return path[::-1], f_score
+
+#         for neighbor in get_neighbors(grid, current):
+#             tentative_g = g_score[current] + 1
+#             if neighbor not in g_score or tentative_g < g_score[neighbor]:
+#                 g_score[neighbor] = tentative_g
+#                 f_score[neighbor] = tentative_g + calculate_heuristic(neighbor, goal)
+#                 heapq.heappush(open_list, (f_score[neighbor], neighbor))
+#                 came_from[neighbor] = current
+
+#     return [], f_score  # No path found
+
+# def calculate_heuristic(a: Tuple[int, int], b: Tuple[int, int]) -> float:
+#     return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+# def get_neighbors(grid: np.ndarray, node: Tuple[int, int]) -> List[Tuple[int, int]]:
+#     neighbors = []
+#     x, y = node
+#     for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+#         nx, ny = x + dx, y + dy
+#         if 0 <= nx < grid.shape[0] and 0 <= ny < grid.shape[1] and grid[nx, ny] == 0:
+#             neighbors.append((nx, ny))
+#     return neighbors
+
+# # Generar el mapa y clusters
+# grid = generate_map(MAP_SIZE)
+# clusters = get_clusters(grid, CLUSTER_SIZE)
+# portals = get_portals(clusters, grid)
+# connections = connect_clusters_via_portals(portals, CLUSTER_SIZE)
+
+# print("Connections:", connections)
+
+# # Definir inicio y destino
+# start, goal = (0, 0), (19, 19)
+
+# # Ejecutar HPA*
+# abstract_path = hpa_star(grid, start, goal, connections)
+# if abstract_path:
+#     path = refine_path(grid, abstract_path)
+# else:
+#     path = []
+
+# print("Path:", path)
+
+# # Mostrar resultado (2 imagenes en una misma ventana, una con los clusters y otra con los portales)
+# fig, (ax1, ax2) = plt.subplots(1, 2)
+# ax1.imshow(grid, cmap='gray_r')
+# ax1.set_title('Clusters')
+# for cluster in clusters:
+#     x, y = zip(*cluster)
+#     # Vary color of clusters for better visualization
+#     ax1.scatter(y, x, c=np.random.rand(3,))
+
+# ax2.imshow(grid, cmap='gray_r')
+# for portal, neighbors in portals.items():
+#     x, y = zip(*neighbors)
+#     ax2.scatter(y, x, c='blue', marker='x')
+#     ax2.scatter(portal[1], portal[0], c='red', marker='o')
+# ax2.set_title('Vecinos & Portales')
+
+# plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import numpy as np
 import heapq
-from math import sqrt
 import matplotlib.pyplot as plt
-import pdb
-import pygame
+from typing import List, Tuple, Dict
+
+# Tamaño del mapa y cluster
+MAP_SIZE = (20, 20)
+CLUSTER_SIZE = 5
 
 
-def create_node(position: Tuple[int, int], g: float = float('inf'),
-                h: float = 0.0, parent: Dict = None) -> Dict:
-    """
-        Create a node for the A* algorithm.
-
-        Args:
-            position: (x, y) coordinates of the node
-            g: Cost from start to this node (default: infinity)
-            h: Estimated cost from this node to goal (default: 0)
-            parent: Parent node (default: None)
-
-        Returns:
-            Dictionary containing node information
-    """
-    scaled_h = h * 1.5
-    # weigth = 1.1
-    # Use Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
-    # Conditions for Avoiding Reopenings in Best First Suboptimal Search
-    # with General Bounding Functions to scale the heuristic
-    # scaled_f = g + h if g < h else (g + (2 * weigth - 1) * h) / weigth
-
-    return {
-        'position': position,
-        'g': g,
-        'h': h,
-        # 'f': scaled_f,
-        'f': g + scaled_h,
-        'parent': parent
-    }
+# Crear un mapa de prueba con obstáculos
+def generate_map(size: Tuple[int, int]) -> np.ndarray:
+    grid = np.zeros(size, dtype=int)
+    grid[5:15, 10] = 1  # Obstáculo vertical
+    return grid
 
 
-def calculate_manhattan_distance(current_position: Tuple[int, int], goal_position: Tuple[int, int]) -> float:
-    """
-        Calculate the Euclidian distance between two points.
-
-        Args:
-            current_position: (x, y) coordinates of the current point
-            goal_position: (x, y) coordinates of the goal point
-
-        Returns:
-            Euclidian distance between the two points
-    """
-    current_x, current_y = current_position
-    goal_x, goal_y = goal_position
-
-    return abs(current_x - goal_x) + abs(current_y - goal_y)
-
-
-def calculate_diagonal_distance(current_position: Tuple[int, int], goal_position: Tuple[int, int]) -> float:
-    """
-        Calculate the diagonal distance between two points. As D and D2 are
-        equal to 1, it gets the name of Chebyshev distance. It is also known
-        as chessboard distance.
-
-        Args:
-            current_position: (x, y) coordinates of the current point
-            goal_position: (x, y) coordinates of the goal point
-
-        Returns:
-            Diagonal distance between the two points
-    """
-    current_x, current_y = current_position
-    goal_x, goal_y = goal_position
-
-    dx = abs(current_x - goal_x)
-    dy = abs(current_y - goal_y)
-    D1 = 1
-    D2 = sqrt(2)
-
-    return D1 * (dx + dy) + (D2 - 2 * D1) * min(dx, dy)
-
-
-def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tuple[int, int]]:
-    """
-        Get valid neighbours of a given node and surrounding nodes.
-
-        Args:
-            grid: Grid with obstacles
-            position: (x, y) coordinates of the node
-
-        Returns:
-            List of valid neighbours
-    """
-    x, y = position
+# Dividir el mapa en clusters
+def get_clusters(grid: np.ndarray, cluster_size: int) -> List[List[Tuple[int, int]]]:
+    clusters = []
     rows, cols = grid.shape
-
-    # All possible moves (up, down, left, right and diagonals)
-    possible_moves = [
-        (x + 1, y),  # Right
-        (x - 1, y),  # Left
-        (x, y + 1),  # Down
-        (x, y - 1),  # Up
-        (x + 1, y + 1),  # Diagonal right-down
-        (x + 1, y - 1),  # Diagonal right-up
-        (x - 1, y + 1),  # Diagonal left-down
-        (x - 1, y - 1)  # Diagonal left-up
-    ]
-
-    # possible_moves = [
-    #     (x + 1, y),  # Right
-    #     (x - 1, y),  # Left
-    #     (x, y + 1),  # Down
-    #     (x, y - 1)  # Up
-    # ]
-
-    # Filter valid neighbours
-    return [
-        (nx, ny) for nx, ny in possible_moves
-        if 0 <= nx < rows and 0 <= ny < cols  # Within grid bounds
-        and (grid[nx, ny] == 0 or grid[nx, ny] == 3)  # Not an obstacle
-    ]
+    for i in range(0, rows, cluster_size):
+        for j in range(0, cols, cluster_size):
+            cluster = [(x, y) for x in range(i, min(i+cluster_size, rows))
+                                for y in range(j, min(j+cluster_size, cols))]
+            clusters.append(cluster)
+    return clusters
 
 
-def reconstruct_path(goal_node: Dict) -> List[Tuple[int, int]]:
-    """
-        Reconstruct the path from the goal node to the start node.
-
-        Args:
-            goal_node: Goal node
-
-        Returns:
-            List of nodes from start to goal    
-    """
-    path = []
-    current = goal_node
-
-    while current is not None:
-        path.append(current['position'])
-        current = current['parent']
-
-    return path[::-1]  # Reverse path (start to goal)
+# Identificar portales entre clusters
+def get_portals(clusters: List[List[Tuple[int, int]]], grid: np.ndarray) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
+    portals = {}
+    for cluster in clusters:
+        for x, y in cluster:
+            if grid[x, y] == 0:  # No es obstáculo
+                neighbors = [(x+dx, y+dy) for dx, dy in [(0,1), (1,0), (0,-1), (-1,0)]
+                             if (x+dx, y+dy) in cluster and grid[x+dx, y+dy] == 0]
+                if len(neighbors) < 4:  # Borde del cluster
+                    portals[(x, y)] = neighbors
+    return portals
 
 
-def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
-    """
-        Find the best path from start to goal using the A* algorithm.
+def connect_clusters_via_portals(portals: Dict[Tuple[int, int], List[Tuple[int, int]]], cluster_size: int) -> Dict[Tuple[int, int], List[Tuple[int, int]]]:
+    connections = {}
+    for portal in portals:
+        x, y = portal
+        cluster_x, cluster_y = x // cluster_size, y // cluster_size
+        for dx, dy in [(0,1), (1,0), (0,-1), (-1,0)]:
+            neighbor_x, neighbor_y = x + dx, y + dy
+            neighbor_cluster_x, neighbor_cluster_y = neighbor_x // cluster_size, neighbor_y // cluster_size
+            if (neighbor_cluster_x, neighbor_cluster_y) != (cluster_x, cluster_y):
+                if (neighbor_x, neighbor_y) in portals:
+                    if portal not in connections:
+                        connections[portal] = []
+                    connections[portal].append((neighbor_x, neighbor_y))
+    return connections
 
-        Args:
-            grid: Grid with obstacles
-            start: (x, y) coordinates of the start node
-            goal: (x, y) coordinates of the goal node
 
-        Returns:
-            List of nodes from start to goal
-    """
-    # Initialize start node
-    start_node = create_node(position=start, g=0, h=calculate_diagonal_distance(start, goal))
-
-    # Initialize heat map
-    heat_map = np.zeros_like(grid, dtype=float)
-
-    # Initialize open and closed lists
-    open_list = [(start_node['f'], start)]  # Priority queue
-    open_dict = {start: start_node}  # For quick node lookup
-    closed_list = set()  # Explored nodes
-
-    # Initialize visit count array
-    visit_count = np.zeros_like(grid, dtype=int)
-
-    # Initialize time measurement
-    start_time = pygame.time.get_ticks()
+# Algoritmo HPA*
+def hpa_star(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int], portals: Dict[Tuple[int, int], List[Tuple[int, int]]]) -> List[Tuple[int, int]]:
+    open_list = [(0, start)]
+    came_from = {}
+    g_score = {start: 0}
 
     while open_list:
-        # Get node with lowest f value
-        _, current_pos = heapq.heappop(open_list)
-        current_node = open_dict[current_pos]
+        _, current = heapq.heappop(open_list)
+        print("Current:", current)
+        print("Portals:", portals.get(current, []))
+        print("Open list:", open_list)
+        if current == goal:
+            path = []
+            while current in came_from:
+                path.append(current)
+                current = came_from[current]
+            return path[::-1]
 
-        # Update visit count and heat map
-        visit_count[current_pos[0]][current_pos[1]] += 1
-        heat_map[current_pos[0]][current_pos[1]] = np.log1p(visit_count[current_pos[0]][current_pos[1]])
+        for neighbor in portals.get(current, []):
+            tentative_g = g_score[current] + 1
+            if neighbor not in g_score or tentative_g < g_score[neighbor]:
+                g_score[neighbor] = tentative_g
+                heapq.heappush(open_list, (tentative_g, neighbor))
+                came_from[neighbor] = current
 
-        # Check if goal is reached
-        if current_pos == goal:
-            # Reconstruction of the path
-            path = reconstruct_path(current_node)
+    return []  # No se encontró camino
 
-            # Finish time measurement
-            measure_time = pygame.time.get_ticks() - start_time
 
-            # Return the path, the heat map and the number of visited nodes
-            return path, heat_map, len(closed_list), measure_time
+# Generar el mapa y clusters
+grid = generate_map(MAP_SIZE)
+clusters = get_clusters(grid, CLUSTER_SIZE)
+portals = get_portals(clusters, grid)
 
-        # Add current node to closed list
-        closed_list.add(current_pos)
+# Definir inicio y destino
+start, goal = (0, 0), (19, 19)
 
-        # Explore neighbours
-        for neighbour_pos in get_valid_neighbours(grid, current_pos):
+# Ejecutar HPA*
+path = hpa_star(grid, start, goal, portals)
 
-            # Skip if already explored
-            if neighbour_pos in closed_list:
-                continue
+print(path)
 
-            # Calculate g and h values
-            tentative_g = current_node['g'] + calculate_diagonal_distance(current_pos, neighbour_pos)
+# Mostrar resultado (2 imagenes en una misma ventana, una con los clusters y otra con los portales)
+fig, (ax1, ax2) = plt.subplots(1, 2)
+ax1.imshow(grid, cmap='gray_r')
+ax1.set_title('Clusters')
+for cluster in clusters:
+    x, y = zip(*cluster)
+    # Vary color of clusters for better visualization
+    ax1.scatter(y, x, c=np.random.rand(3,))
 
-            # Create or update neighbour node
-            if neighbour_pos not in open_list:
-                neighbour = create_node(position=neighbour_pos, g=tentative_g, h=calculate_diagonal_distance(neighbour_pos, goal), parent=current_node)
 
-                # Add neighbour to open list
-                heapq.heappush(open_list, (neighbour['f'], neighbour_pos))
+ax2.imshow(grid, cmap='gray_r')
+for portal, neighbors in portals.items():
+    x, y = zip(*neighbors)
+    ax2.scatter(y, x, c='blue', marker='x')
+    ax2.scatter(portal[1], portal[0], c='red', marker='o')
+ax2.set_title('Vecinos & Portales')
 
-                # Add neighbour to open dict
-                open_dict[neighbour_pos] = neighbour
-
-            elif tentative_g < open_dict[neighbour_pos]['g']:
-                # Found a better path to the neighbour
-                neighbour = open_dict[neighbour_pos]
-                neighbour['g'] = tentative_g
-                # Apply Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
-                # Conditions for Avoiding Reopenings in Best First Suboptimal Search
-                # with General Bounding Functions to scale the heuristic
-                # neighbour['f'] = tentative_g + neighbour['h'] if tentative_g < neighbour['h'] else (tentative_g + (2 * 1.1 - 1) * neighbour['h']) / 1.1
-                neighbour['f'] = tentative_g + neighbour['h']
-                neighbour['parent'] = current_node
-
-    # Finish time measurement
-    measure_time = pygame.time.get_ticks() - start_time
-
-    return [], [], len(closed_list), measure_time  # No path found
+plt.show()
