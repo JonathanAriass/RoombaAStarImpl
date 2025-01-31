@@ -64,7 +64,7 @@ import numpy
 numpy.set_printoptions(threshold=sys.maxsize)
 
 # Find path to origin point and heat map
-path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+path, heat_map, expanded_nodes, measure_time = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
 # Game loop
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -110,7 +110,7 @@ while running:
             obstacles_surface.fill((0, 0, 0, 0))  # Clear the obstacles surface
             obstacles.extend(temporal_added_obstacles)
             grid = update_grid_with_added_obstacles(grid, obstacles)
-            path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
+            path, heat_map, expanded_nodes, measure_time = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
     # Handle player movement
     keys = pygame.key.get_pressed()
@@ -141,13 +141,7 @@ while running:
             grid, player_coords = update_robot_movement_grid(new_player_x, new_player_y, grid, player_coords)
 
         # Find path to origin only when player moves (measure time to find path)
-        start_time = pygame.time.get_ticks()
-        path, heat_map = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
-        measure_time = pygame.time.get_ticks() - start_time
-
-        # Add this time into a log file
-        with open("log.txt", "a") as file:
-            file.write(f"{measure_time} ms\n")
+        path, heat_map, expanded_nodes, measure_time = find_path(grid, (player_x // CELL_SIZE, player_y // CELL_SIZE), (origin_x // CELL_SIZE, origin_y // CELL_SIZE))
 
     # Screen drawing
     screen.fill(WHITE)
@@ -213,6 +207,15 @@ while running:
     font = pygame.font.Font(None, 36)
     fps = font.render(f"{int(clock.get_fps())} FPS", True, BLACK)
     screen.blit(fps, (10, 10))
+
+    # Draw nodes expanded, path cost, and time to find path
+    font = pygame.font.Font(None, 24)
+    text = font.render(f"Nodes expanded: {expanded_nodes}", True, BLACK)
+    screen.blit(text, (10, 40))
+    text = font.render(f"Path cost: {len(path)}", True, BLACK)
+    screen.blit(text, (10, 70))
+    text = font.render(f"Time to find path: {measure_time} ms", True, BLACK)
+    screen.blit(text, (10, 100))
 
     pygame.display.update()
     clock.tick(FPS)

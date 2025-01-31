@@ -4,6 +4,7 @@ import heapq
 from math import sqrt
 import matplotlib.pyplot as plt
 import pdb
+import pygame
 
 
 def create_node(position: Tuple[int, int], g: float = float('inf'),
@@ -20,18 +21,19 @@ def create_node(position: Tuple[int, int], g: float = float('inf'),
         Returns:
             Dictionary containing node information
     """
-    # scaled_h = h * 1.5
-    weigth = 1.1
+    scaled_h = h * 1.5
+    # weigth = 1.1
     # Use Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
     # Conditions for Avoiding Reopenings in Best First Suboptimal Search
     # with General Bounding Functions to scale the heuristic
-    scaled_f = g + h if g < h else (g + (2 * weigth - 1) * h) / weigth
+    # scaled_f = g + h if g < h else (g + (2 * weigth - 1) * h) / weigth
 
     return {
         'position': position,
         'g': g,
         'h': h,
-        'f': scaled_f,
+        # 'f': scaled_f,
+        'f': g + scaled_h,
         'parent': parent
     }
 
@@ -69,7 +71,12 @@ def calculate_diagonal_distance(current_position: Tuple[int, int], goal_position
     current_x, current_y = current_position
     goal_x, goal_y = goal_position
 
-    return max(abs(current_x - goal_x), abs(current_y - goal_y))
+    dx = abs(current_x - goal_x)
+    dy = abs(current_y - goal_y)
+    D1 = 1
+    D2 = sqrt(2)
+
+    return D1 * (dx + dy) + (D2 - 2 * D1) * min(dx, dy)
 
 
 def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tuple[int, int]]:
@@ -98,6 +105,14 @@ def get_valid_neighbours(grid: np.ndarray, position: Tuple[int, int]) -> List[Tu
         (x - 1, y - 1)  # Diagonal left-up
     ]
 
+    # possible_moves = [
+    #     (x + 1, y),  # Right
+    #     (x - 1, y),  # Left
+    #     (x, y + 1),  # Down
+    #     (x, y - 1)  # Up
+    # ]
+
+    # Filter valid neighbours
     return [
         (nx, ny) for nx, ny in possible_moves
         if 0 <= nx < rows and 0 <= ny < cols  # Within grid bounds
@@ -151,6 +166,9 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
     # Initialize visit count array
     visit_count = np.zeros_like(grid, dtype=int)
 
+    # Initialize time measurement
+    start_time = pygame.time.get_ticks()
+
     while open_list:
         # Get node with lowest f value
         _, current_pos = heapq.heappop(open_list)
@@ -162,8 +180,14 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
 
         # Check if goal is reached
         if current_pos == goal:
+            # Reconstruction of the path
             path = reconstruct_path(current_node)
-            return path, heat_map
+
+            # Finish time measurement
+            measure_time = pygame.time.get_ticks() - start_time
+
+            # Return the path, the heat map and the number of visited nodes
+            return path, heat_map, len(closed_list), measure_time
 
         # Add current node to closed list
         closed_list.add(current_pos)
@@ -195,8 +219,11 @@ def find_path(grid: np.ndarray, start: Tuple[int, int], goal: Tuple[int, int]):
                 # Apply Chen and Sturvetant’s AAAI 2021 paper Necessary and Sufficient
                 # Conditions for Avoiding Reopenings in Best First Suboptimal Search
                 # with General Bounding Functions to scale the heuristic
-                neighbour['f'] = tentative_g + neighbour['h'] if tentative_g < neighbour['h'] else (tentative_g + (2 * 1.1 - 1) * neighbour['h']) / 1.1
-                # neighbour['f'] = tentative_g + neighbour['h']
+                # neighbour['f'] = tentative_g + neighbour['h'] if tentative_g < neighbour['h'] else (tentative_g + (2 * 1.1 - 1) * neighbour['h']) / 1.1
+                neighbour['f'] = tentative_g + neighbour['h']
                 neighbour['parent'] = current_node
 
-    return [], []  # No path found
+    # Finish time measurement
+    measure_time = pygame.time.get_ticks() - start_time
+
+    return [], [], len(closed_list), measure_time  # No path found
