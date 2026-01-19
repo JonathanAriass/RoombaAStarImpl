@@ -1,7 +1,7 @@
 import numpy as np
 
-GRID_SIZE = 40  # Define a smaller grid size (e.g., 40x40)
-SCREEN_WIDTH, SCREEN_HEIGHT = 800, 800  # Screen dimensions
+GRID_SIZE = 50  # Grid size - should match main.py
+SCREEN_WIDTH, SCREEN_HEIGHT = 800, 800  # Screen dimensions - should match main.py
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE  # Size of each cell in the grid
 
 
